@@ -1,0 +1,2 @@
+152 iteracija order=(1, 0, 1), seasonal_order=(1, 0, 1, 132) params = 0.9987, 0.9782, 0.2815, 93.0042, 0.0005 [BAD] RMSE 65.75 MAE 57.84
+48 iteracija order=(1, 0, 1), seasonal_order=(1, 1, 1, 132) params = 0.9974, 0.9780, 9.495e-05, -0.8152, 4.4278 [MID] RMSE 52.25 MAE 43.26
