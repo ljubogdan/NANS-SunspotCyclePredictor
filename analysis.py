@@ -70,15 +70,15 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 sarima_model = SARIMAX(train['Smoothed_Sunspots'], 
-                       order=(1, 0, 1),           
+                       order=(2, 1, 2),           
                        seasonal_order=(1, 1, 1, 132), 
                        enforce_stationarity=False, 
                        enforce_invertibility=False)
 
-sarima_model.update([0.9974, 0.9780, 9.495e-05, -0.8152, 4.4278])
+sarima_model.update([1.1806, -0.2283, 0.2352, -0.6762, -0.0003, -0.9095, 2.3133])
 
 # Generisanje predikcija
-forecast = sarima_model.filter([0.9974, 0.9780, 9.495e-05, -0.8152, 4.4278]).get_forecast(steps=len(test)).predicted_mean
+forecast = sarima_model.filter([1.1806, -0.2283, 0.2352, -0.6762, -0.0003, -0.9095, 2.3133]).get_forecast(steps=len(test)).predicted_mean
 
 # Evaluacija
 rmse = mean_squared_error(test['Smoothed_Sunspots'], forecast, squared=False)
