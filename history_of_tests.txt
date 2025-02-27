@@ -1,5 +1,14 @@
+===== SARIMA MODEL ====
+
 152 iterations order=(1, 0, 1), seasonal_order=(1, 0, 1, 132) params = [0.9987, 0.9782, 0.2815, 93.0042, 0.0005] [BAD] RMSE 65.75 MAE 57.84
 48 iterations order=(1, 0, 1), seasonal_order=(1, 1, 1, 132) params = [0.9974, 0.9780, 9.495e-05, -0.8152, 4.4278] [MID] RMSE 52.25 MAE 43.26
 40 iterations order=(2, 1, 2), seasonal_order=(1, 1, 1, 132) params = [1.1806, -0.2283, 0.2352, -0.6762, -0.0003, -0.9095, 2.3133] [MID] RMSE 53.18 MAE 38.71
+10 iterations order=(2, 1, 2), seasonal_order=(2, 1, 2, 132) NA [ABORT]
+15 iterations order=(1, 1, 1), seasonal_order=(1, 1, 1, 132) params = [0.6628, 1.0781, 0.0002, -0.8827, 2.1757] [BAD] RMSE 55.26 MAE 48.04
 
-pokušati još jednom SARIMA sa drugačijim orderom (ima da traje 6 sati nizašta verovatno)
+==== LSTM ====
+
+test 1 curenje podataka - previše savršen model
+test 2 test 3 overlearning na testu - kasnije ništa dobro ne predvidja
+
+==== NASTAVAK TESTIRANJA ==== 26.02.2025.

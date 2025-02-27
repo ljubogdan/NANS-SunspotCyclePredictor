@@ -1,13 +1,17 @@
+import numpy as np
 import pandas as pd
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 
-file_path = 'data/SN_ms_tot_V2.0.csv'
+file_path = '/kaggle/input/dataset/SN_ms_tot_V2.0.csv'
 data = pd.read_csv(file_path, sep=';', header=None, names=['Year', 'Month', 'Decimal_Year', 'Smoothed_Sunspots', 'Error', 'Obs', 'Indicator'])
 
-# izbacimo prvih i zadnjih 6 redova
 data = data[6:-6]
 
-# Izbacimo nedostajuće vrednosti
 data = data[data['Smoothed_Sunspots'] != -1]
 
 data['Date'] = pd.to_datetime(data[['Year', 'Month']].assign(DAY=1))
@@ -60,40 +64,58 @@ plt.tight_layout()
 plt.show()
 '''
 
+# cilj projekta je napraviti LSTM+ model koji će predvidjati kako izgleda naredni solarni ciklus
+# pošto se poslednji pik desio 2014 godine, probaćemo da predvidimo taj solarni ciklus
+# podatke imamo od 1749 godine, tako da ćemo koristiti podatke od 1749 do 2008 godine za treniranje modela
+# na istom grafiku plotujemo stvarne podatke i poslednje vrednosti predikcije da se ovelapuju da uporedimo
+# kako se model ponaša
 
-# 80% trening, 20% test
-train = data[:int(0.8 * len(data))]
-test = data[int(0.8 * len(data)):]
+train_data = data[data['Year'] <= 2008]
+test_data = data[data['Year'] > 2008]
 
+scaler = MinMaxScaler()
 
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+train_data_scaled = scaler.fit_transform(train_data['Smoothed_Sunspots'].values.reshape(-1, 1))
 
-sarima_model = SARIMAX(train['Smoothed_Sunspots'], 
-                       order=(2, 1, 2),           
-                       seasonal_order=(1, 1, 1, 132), 
-                       enforce_stationarity=False, 
-                       enforce_invertibility=False)
+def create_dataset(X, y, time_steps=1):
+    Xs, ys = [], []
+    for i in range(len(X) - time_steps):
+        v = X[i:(i + time_steps)]
+        Xs.append(v)
+        ys.append(y[i + time_steps])
+    return np.array(Xs), np.array(ys)
 
-sarima_model.update([1.1806, -0.2283, 0.2352, -0.6762, -0.0003, -0.9095, 2.3133])
+TIME_STEPS = 12
 
-# Generisanje predikcija
-forecast = sarima_model.filter([1.1806, -0.2283, 0.2352, -0.6762, -0.0003, -0.9095, 2.3133]).get_forecast(steps=len(test)).predicted_mean
+X_train, y_train = create_dataset(train_data_scaled, train_data_scaled, TIME_STEPS)
+X_test, y_test = create_dataset(test_data['Smoothed_Sunspots'].values, test_data['Smoothed_Sunspots'].values, TIME_STEPS)
 
-# Evaluacija
-rmse = mean_squared_error(test['Smoothed_Sunspots'], forecast, squared=False)
-mae = mean_absolute_error(test['Smoothed_Sunspots'], forecast)
+model = Sequential()
+model.add(LSTM(units=64, input_shape=(X_train.shape[1], X_train.shape[2])))
+model.add(Dropout(rate=0.2))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
 
-print("RMSE:", rmse)
-print("MAE:", mae)
+early_stopping = EarlyStopping(monitor='val_loss', patience=5, mode='min')
 
-# Vizualizacija predikcija i stvarnih vrednosti
-plt.figure(figsize=(10, 5))
-plt.plot(test['Date'], test['Smoothed_Sunspots'], label='Stvarne vrednosti', linewidth=2)
-plt.plot(test['Date'], forecast, label='Predikcije', color='red', linewidth=2)
+history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_split=0.1, callbacks=[early_stopping], shuffle=False)
+
+y_pred = model.predict(X_test)
+
+y_train_inv = scaler.inverse_transform(y_train.reshape(1, -1))
+y_test_inv = scaler.inverse_transform(y_test.reshape(1, -1))
+y_pred_inv = scaler.inverse_transform(y_pred)
+
+# plotujemo stvarne podatke i predikcije
+
+plt.figure(figsize=(12, 6))
+plt.plot(data['Date'], data['Smoothed_Sunspots'], label='Smoothed Sunspots', linewidth=2)
+plt.plot(test_data['Date'].values[TIME_STEPS:], y_pred_inv, label='Predicted Sunspots', linewidth=2)
+plt.title("13-Month Smoothed Sunspot Numbers", fontsize=14)
+plt.xlabel("Year")
+plt.ylabel("Sunspot Numbers")
+plt.grid(True, alpha=0.5)
 plt.legend()
-plt.title('Stvarne vrednosti vs Predikcije')
-plt.xlabel('Datum')
-plt.ylabel('Sunčeve pege')
-plt.grid(alpha=0.3)
+plt.tight_layout()
 plt.show()
+
